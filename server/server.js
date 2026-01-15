@@ -76,7 +76,7 @@ app.put('/api/tasks/:id/toggle', async (req, res) => {
     const { completed } = req.body;
 
     // Input validation
-    if (!id || isNaN(parseInt(id))) {
+    if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
         return res.status(400).json({ error: 'Invalid task ID' });
     }
 
