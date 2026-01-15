@@ -11,7 +11,7 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:5173", "http://127.0.0.1:5173", "*"],
+        origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
         methods: ["GET", "POST", "PUT"],
         credentials: true
     }
@@ -73,6 +73,15 @@ app.get('/api/data', async (req, res) => {
 app.put('/api/tasks/:id/toggle', async (req, res) => {
     const id = req.params.id;
     const { completed } = req.body;
+
+    // Input validation
+    if (!id || isNaN(parseInt(id))) {
+        return res.status(400).json({ error: 'Invalid task ID' });
+    }
+
+    if (typeof completed !== 'boolean') {
+        return res.status(400).json({ error: 'completed must be a boolean value' });
+    }
 
     try {
         const { data, error } = await supabase

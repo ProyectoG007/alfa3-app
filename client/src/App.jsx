@@ -13,14 +13,19 @@ const socket = io(API_URL, {
   transports: ['websocket', 'polling']
 });
 
+// Handle socket connection errors
+socket.on('connect_error', (error) => {
+  console.error('Socket connection error:', error.message);
+});
+
+socket.on('connect', () => {
+  console.log('Socket connected successfully');
+});
+
 // --- Components ---
 
 // 1. Sidebar Component
 const Sidebar = ({ projects }) => {
-  const totalSubItems = projects.reduce((acc, p) => acc + p.total_count, 0);
-  const completedItems = projects.reduce((acc, p) => acc + p.completed_count, 0);
-  const globalProgress = totalSubItems === 0 ? 0 : Math.round((completedItems / totalSubItems) * 100);
-
   return (
     <aside className="sidebar">
       <div className="logo-area">
@@ -231,14 +236,22 @@ function App() {
 
   const fetchData = () => {
     fetch(`${API_URL}/api/data`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(res => {
         if (res.data) {
           setData(res.data);
           setLoading(false);
         }
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        console.error('Error fetching data:', err);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -291,7 +304,17 @@ function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ completed: newState })
     })
-      .catch(err => console.error("Update failed", err));
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .catch(err => {
+        console.error("Update failed:", err);
+        // Revert optimistic update on failure
+        fetchData();
+      });
   };
 
   if (loading) return <div className="loading-screen">Cargando Dashboard ALPHA3...</div>;
