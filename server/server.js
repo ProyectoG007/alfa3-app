@@ -11,7 +11,7 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:5173", "http://127.0.0.1:5173", "*"],
+        origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
         methods: ["GET", "POST", "PUT"],
         credentials: true
     }
@@ -20,6 +20,7 @@ const io = new Server(server, {
 // --- REST API Endpoints ---
 
 // 1. Get FULL Dashboard Data (Hierarchy)
+// Returns all projects with nested categories and tasks, including calculated progress
 app.get('/api/data', async (req, res) => {
     try {
         // Fetch Projects
@@ -43,7 +44,7 @@ app.get('/api/data', async (req, res) => {
 
         if (tErr) throw tErr;
 
-        // Construct Hierarchy
+        // Construct Hierarchy: Projects > Categories > Tasks
         const fullData = projects.map(p => {
             const projectCats = categories.filter(c => c.project_id === p.id);
             const catsWithTasks = projectCats.map(c => {
@@ -53,7 +54,7 @@ app.get('/api/data', async (req, res) => {
                 };
             });
 
-            // Calculate Progress
+            // Calculate Progress: percentage of completed tasks
             const allTasks = catsWithTasks.flatMap(c => c.tasks);
             const completed = allTasks.filter(t => t.completed === true || t.completed === 1).length;
             const total = allTasks.length;
@@ -73,6 +74,15 @@ app.get('/api/data', async (req, res) => {
 app.put('/api/tasks/:id/toggle', async (req, res) => {
     const id = req.params.id;
     const { completed } = req.body;
+
+    // Input validation
+    if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
+        return res.status(400).json({ error: 'Invalid task ID' });
+    }
+
+    if (typeof completed !== 'boolean') {
+        return res.status(400).json({ error: 'completed must be a boolean value' });
+    }
 
     try {
         const { data, error } = await supabase
