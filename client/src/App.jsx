@@ -17,10 +17,6 @@ const socket = io(API_URL, {
 
 // 1. Sidebar Component
 const Sidebar = ({ projects }) => {
-  const totalSubItems = projects.reduce((acc, p) => acc + p.total_count, 0);
-  const completedItems = projects.reduce((acc, p) => acc + p.completed_count, 0);
-  const globalProgress = totalSubItems === 0 ? 0 : Math.round((completedItems / totalSubItems) * 100);
-
   return (
     <aside className="sidebar">
       <div className="logo-area">
