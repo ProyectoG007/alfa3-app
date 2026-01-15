@@ -20,6 +20,7 @@ const io = new Server(server, {
 // --- REST API Endpoints ---
 
 // 1. Get FULL Dashboard Data (Hierarchy)
+// Returns all projects with nested categories and tasks, including calculated progress
 app.get('/api/data', async (req, res) => {
     try {
         // Fetch Projects
@@ -43,7 +44,7 @@ app.get('/api/data', async (req, res) => {
 
         if (tErr) throw tErr;
 
-        // Construct Hierarchy
+        // Construct Hierarchy: Projects > Categories > Tasks
         const fullData = projects.map(p => {
             const projectCats = categories.filter(c => c.project_id === p.id);
             const catsWithTasks = projectCats.map(c => {
@@ -53,7 +54,7 @@ app.get('/api/data', async (req, res) => {
                 };
             });
 
-            // Calculate Progress
+            // Calculate Progress: percentage of completed tasks
             const allTasks = catsWithTasks.flatMap(c => c.tasks);
             const completed = allTasks.filter(t => t.completed === true || t.completed === 1).length;
             const total = allTasks.length;

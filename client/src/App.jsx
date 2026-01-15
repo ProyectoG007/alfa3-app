@@ -269,6 +269,7 @@ function App() {
 
   const handleToggle = (taskId, newState) => {
     // 1. Optimistic Update (Instant feedback)
+    // Update UI immediately before server confirmation for better UX
     setData(prevData => {
       return prevData.map(proj => {
         // Find if the task belongs to this project
@@ -276,13 +277,13 @@ function App() {
 
         if (!taskExists) return proj;
 
-        // Clone and Update
+        // Clone and Update task state
         const updatedCategories = proj.categories.map(cat => ({
           ...cat,
           tasks: cat.tasks.map(t => (t.id === taskId ? { ...t, completed: newState } : t))
         }));
 
-        // Calculate new counts
+        // Recalculate project progress metrics
         const allTasks = updatedCategories.flatMap(c => c.tasks);
         const completedCount = allTasks.filter(t => t.completed === true || t.completed === 1 || t.completed === "1").length;
         const totalCount = allTasks.length;
