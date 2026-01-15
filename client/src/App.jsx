@@ -72,7 +72,13 @@ const DashboardView = ({ projects, onCreateProject }) => {
       <header className="view-header">
         <div className="header-row">
           <h1>Control ALPHA3</h1>
-          <button className="btn-primary" onClick={() => setShowModal(true)}>+ Nuevo Proyecto</button>
+          <button 
+            className="btn-primary" 
+            onClick={() => setShowModal(true)}
+            aria-label="Crear nuevo proyecto"
+          >
+            + Nuevo Proyecto
+          </button>
         </div>
       </header>
 
@@ -98,8 +104,14 @@ const DashboardView = ({ projects, onCreateProject }) => {
       {/* Create Project Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h2>Crear Nuevo Proyecto</h2>
+          <div 
+            className="modal-content" 
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+          >
+            <h2 id="modal-title">Crear Nuevo Proyecto</h2>
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '20px' }}>
                 <label htmlFor="projectName" style={{ display: 'block', marginBottom: '8px', color: '#ccc' }}>
