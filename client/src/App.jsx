@@ -17,10 +17,6 @@ const socket = io(API_URL, {
 
 // 1. Sidebar Component
 const Sidebar = ({ projects }) => {
-  const totalSubItems = projects.reduce((acc, p) => acc + p.total_count, 0);
-  const completedItems = projects.reduce((acc, p) => acc + p.completed_count, 0);
-  const globalProgress = totalSubItems === 0 ? 0 : Math.round((completedItems / totalSubItems) * 100);
-
   return (
     <aside className="sidebar">
       <div className="logo-area">
@@ -54,15 +50,36 @@ const Sidebar = ({ projects }) => {
 };
 
 // 2. Dashboard View
-const DashboardView = ({ projects }) => {
+const DashboardView = ({ projects, onCreateProject }) => {
+  const [showModal, setShowModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+
   const totalSubItems = projects.reduce((acc, p) => acc + p.total_count, 0);
   const completedItems = projects.reduce((acc, p) => acc + p.completed_count, 0);
   const globalProgress = totalSubItems === 0 ? 0 : Math.round((completedItems / totalSubItems) * 100);
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (newProjectName.trim()) {
+      onCreateProject(newProjectName.trim());
+      setNewProjectName('');
+      setShowModal(false);
+    }
+  };
+
   return (
     <div className="view-content animate-fade-in">
       <header className="view-header">
-        <h1>Control ALPHA3</h1>
+        <div className="header-row">
+          <h1>Control ALPHA3</h1>
+          <button 
+            className="btn-primary" 
+            onClick={() => setShowModal(true)}
+            aria-label="Crear nuevo proyecto"
+          >
+            + Nuevo Proyecto
+          </button>
+        </div>
       </header>
 
       <div className="stats-grid">
@@ -83,6 +100,53 @@ const DashboardView = ({ projects }) => {
       <p className="hint-text">
         Haz clic en el nombre de cualquier proyecto en el menú para ver y editar los procedimientos.
       </p>
+
+      {/* Create Project Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div 
+            className="modal-content" 
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+          >
+            <h2 id="modal-title">Crear Nuevo Proyecto</h2>
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="projectName" style={{ display: 'block', marginBottom: '8px', color: '#ccc' }}>
+                  Nombre del Proyecto:
+                </label>
+                <input
+                  id="projectName"
+                  type="text"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="Ej: Estructura Legal"
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    fontSize: '16px',
+                    backgroundColor: '#2a2a2a',
+                    border: '1px solid #444',
+                    borderRadius: '4px',
+                    color: '#fff'
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn-close" onClick={() => setShowModal(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary" disabled={!newProjectName.trim()}>
+                  Crear
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -249,8 +313,14 @@ function App() {
       fetchData();
     });
 
+    socket.on('projectCreated', () => {
+      // Re-fetch data when a new project is created
+      fetchData();
+    });
+
     return () => {
       socket.off('taskUpdated');
+      socket.off('projectCreated');
     };
   }, []);
 
@@ -294,6 +364,28 @@ function App() {
       .catch(err => console.error("Update failed", err));
   };
 
+  const handleCreateProject = (projectName) => {
+    fetch(`${API_URL}/api/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: projectName })
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.project) {
+          // Add the new project to state with empty categories
+          setData(prevData => [...prevData, {
+            ...res.project,
+            categories: [],
+            completed_count: 0,
+            total_count: 0,
+            progress: 0
+          }]);
+        }
+      })
+      .catch(err => console.error("Create project failed", err));
+  };
+
   if (loading) return <div className="loading-screen">Cargando Dashboard ALPHA3...</div>;
 
   return (
@@ -302,7 +394,7 @@ function App() {
         <Sidebar projects={data} />
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<DashboardView projects={data} />} />
+            <Route path="/" element={<DashboardView projects={data} onCreateProject={handleCreateProject} />} />
             <Route path="/charts" element={<ChartsView projects={data} />} />
             <Route path="/project/:id" element={<ProjectView projects={data} onToggle={handleToggle} />} />
           </Routes>

@@ -91,6 +91,30 @@ app.put('/api/tasks/:id/toggle', async (req, res) => {
     }
 });
 
+// 3. Create New Project
+app.post('/api/projects', async (req, res) => {
+    const { name } = req.body;
+
+    if (!name || name.trim() === '') {
+        return res.status(400).json({ error: 'Project name is required' });
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('projects')
+            .insert([{ name: name.trim() }])
+            .select();
+
+        if (error) throw error;
+
+        io.emit('projectCreated', data[0]); // Notify all clients
+        res.json({ message: "created", project: data[0] });
+    } catch (err) {
+        console.error("Error creating project:", err.message);
+        res.status(400).json({ error: err.message });
+    }
+});
+
 // --- Socket.io Handlers ---
 io.on('connection', (socket) => {
     console.log('User connected', socket.id);
